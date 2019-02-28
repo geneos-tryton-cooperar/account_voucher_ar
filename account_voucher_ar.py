@@ -263,25 +263,14 @@ class AccountVoucher(ModelSQL, ModelView):
         Invoice = pool.get('account.invoice')
         MoveLine = pool.get('account.move.line')
         InvoiceAccountMoveLine = pool.get('account.invoice-account.move.line')
-        Currency = pool.get('currency.currency')
-
+        
         lines = []
         lines_credits = []
         lines_debits = []
-
-        if not self.currency or not self.party:
-            self.lines = lines
-            self.lines_credits = lines_credits
-            self.lines_debits = lines_debits
-            return
-
+        
         if self.lines:
             return
-
-        second_currency = None
-        if self.currency != self.company.currency:
-            second_currency = self.currency
-
+        
         if self.voucher_type == 'receipt':
             account_types = ['receivable']
         else:
@@ -318,12 +307,6 @@ class AccountVoucher(ModelSQL, ModelView):
                 line_type = 'dr'
 
             amount_residual = abs(line.amount_residual)
-            if second_currency:
-                with Transaction().set_context(date=self.date):
-                    amount = Currency.compute(self.company.currency,
-                        amount, self.currency)
-                    amount_residual = Currency.compute(self.company.currency,
-                        amount_residual, self.currency)
 
             name = ''
             model = str(line.origin)
