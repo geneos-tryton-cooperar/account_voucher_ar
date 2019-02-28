@@ -154,7 +154,7 @@ class AccountVoucher(ModelSQL, ModelView):
 
     def on_change_party(self):
        
-        
+        '''
         pool = Pool()
         Invoice = pool.get('account.invoice')
         MoveLine = pool.get('account.move.line')
@@ -213,7 +213,7 @@ class AccountVoucher(ModelSQL, ModelView):
                 name = ''
                 model = str(line.origin)
 
-                '''
+               
                 prestamo_pago_completo = False
                 #Es Prestamo
                 if not line.description is None:
@@ -259,32 +259,78 @@ class AccountVoucher(ModelSQL, ModelView):
                     res['lines_debits'] = {}
                 '''
 
-                if model[:model.find(',')] == 'account.invoice':
-                        name = Invoice(line.origin.id).number
-                
-                    if name != '':
-                        payment_line = {
-                            'name': name,
-                            'account': line.account.id,
-                            'amount': Decimal('0.00'),
-                            'amount_original': amount,
-                            'amount_unreconciled': abs(line.amount_residual),
-                            'line_type': line_type,
-                            'move_line': line.id,
-                            'date': line.date,
-                        }
-                        if line.credit and self.voucher_type == 'receipt':
-                            res['lines_credits'].setdefault('add', []).append(payment_line)
-                        elif line.debit and self.voucher_type == 'payment':
-                            res['lines_debits'].setdefault('add', []).append(payment_line)
-                        else:
-                            res['lines'].setdefault('add', []).append(payment_line)
+        pool = Pool()
+        Invoice = pool.get('account.invoice')
+        MoveLine = pool.get('account.move.line')
+        InvoiceAccountMoveLine = pool.get('account.invoice-account.move.line')
 
-                    else: 
-                        res = {}
-                        res['lines'] = {}
-                        res['lines_credits'] = {}
-                        res['lines_debits'] = {}
+        res = {}
+        res['lines'] = {}
+        res['lines_credits'] = {}
+        res['lines_debits'] = {}
+
+        if self.lines:
+            res['lines']['remove'] = [x['id'] for x in self.lines]
+        if self.lines_credits:
+            res['lines_credits']['remove'] = \
+                [x['id'] for x in self.lines_credits]
+        if self.lines_debits:
+            res['lines_debits']['remove'] = \
+                [x['id'] for x in self.lines_debits]
+
+        if not self.party:
+            return res
+        
+        if self.voucher_type == 'receipt':
+            account_types = ['receivable']
+        else:
+            account_types = ['payable']
+        move_lines = MoveLine.search([
+            ('party', '=', self.party),
+            ('account.kind', 'in', account_types),
+            ('state', '=', 'valid'),
+            ('reconciliation', '=', None),
+        ])
+
+        for line in move_lines:
+
+            invoice = InvoiceAccountMoveLine.search([
+                ('line', '=', line.id),
+            ])
+            if invoice:
+                continue
+
+            if line.credit:
+                line_type = 'cr'
+                amount = line.credit
+            else:
+                amount = line.debit
+                line_type = 'dr'
+
+            name = ''
+            model = str(line.origin)
+            if model[:model.find(',')] == 'account.invoice':
+                name = Invoice(line.origin.id).number
+            payment_line = {
+                'name': name,
+                'account': line.account.id,
+                'amount': Decimal('0.00'),
+                'amount_original': amount,
+                'amount_unreconciled': abs(line.amount_residual),
+                'line_type': line_type,
+                'move_line': line.id,
+                'date': line.date,
+                'date_expire': line.maturity_date,
+            }
+
+            if line.credit and self.voucher_type == 'receipt':
+                res['lines_credits'].setdefault('add', []).append(payment_line)
+            elif line.debit and self.voucher_type == 'payment':
+                res['lines_debits'].setdefault('add', []).append(payment_line)
+            else:
+                res['lines'].setdefault('add', []).append(payment_line)
+        
+
         
 
 
