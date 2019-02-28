@@ -273,10 +273,9 @@ class AccountVoucher(ModelSQL, ModelView):
                             'move_line': line.id,
                             'date': line.date,
                         }
-                        #if line.credit and self.voucher_type == 'receipt':
-                        #    res['lines_credits'].setdefault('add', []).append(payment_line)
-                        #elif line.debit and self.voucher_type == 'payment':
-                        if line.debit and self.voucher_type == 'payment': 
+                        if line.credit and self.voucher_type == 'receipt':
+                            res['lines_credits'].setdefault('add', []).append(payment_line)
+                        elif line.debit and self.voucher_type == 'payment':
                             res['lines_debits'].setdefault('add', []).append(payment_line)
                         else:
                             res['lines'].setdefault('add', []).append(payment_line)
