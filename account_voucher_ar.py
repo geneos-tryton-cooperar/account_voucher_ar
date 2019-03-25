@@ -331,16 +331,28 @@ class AccountVoucher(ModelSQL, ModelView):
                     debit = line.amount
                     credit = Decimal('0.00')
                 total -= line.amount
-                move_lines.append({
-                    'description': Invoice(line.move_line.origin.id).number,
-                    'debit': debit,
-                    'credit': credit,
-                    'account': line.account.id,
-                    'move': move.id,
-                    'journal': self.journal.id,
-                    'period': Period.find(self.company.id, date=self.date),
-                    'party': self.party.id,
-                })
+                if line.move_line:
+                    move_lines.append({
+                        'description': Invoice(line.move_line.origin.id).number,
+                        'debit': debit,
+                        'credit': credit,
+                        'account': line.account.id,
+                        'move': move.id,
+                        'journal': self.journal.id,
+                        'period': Period.find(self.company.id, date=self.date),
+                        'party': self.party.id,
+                    })
+                else: 
+                    move_lines.append({
+                        'description': line.name,
+                        'debit': debit,
+                        'credit': credit,
+                        'account': line.account.id,
+                        'move': move.id,
+                        'journal': self.journal.id,
+                        'period': Period.find(self.company.id, date=self.date),
+                        'party': self.party.id,
+                    })
         if total != Decimal('0.00'):
             if self.voucher_type == 'receipt':
                 debit = Decimal('0.00')
