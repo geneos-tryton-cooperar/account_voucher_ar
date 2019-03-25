@@ -389,24 +389,25 @@ class AccountVoucher(ModelSQL, ModelView):
         for line in self.lines:
             if line.amount == Decimal("0.00"):
                 continue
-            invoice = Invoice(line.move_line.origin.id)
-            if self.voucher_type == 'receipt':
-                amount = line.amount
-            else:
-                amount = -line.amount
-            reconcile_lines, remainder = \
-                Invoice.get_reconcile_lines_for_amount(
-                    invoice, amount)
-            for move_line in created_lines:
-                if move_line.description == 'advance':
-                    continue
-                if move_line.description == invoice.number:
-                    reconcile_lines.append(move_line)
-                    Invoice.write([invoice], {
-                        'payment_lines': [('add', [move_line.id])],
-                        })
-            if remainder == Decimal('0.00'):
-                MoveLine.reconcile(reconcile_lines)
+            if line.move_line:
+                invoice = Invoice(line.move_line.origin.id)
+                if self.voucher_type == 'receipt':
+                    amount = line.amount
+                else:
+                    amount = -line.amount
+                reconcile_lines, remainder = \
+                    Invoice.get_reconcile_lines_for_amount(
+                        invoice, amount)
+                for move_line in created_lines:
+                    if move_line.description == 'advance':
+                        continue
+                    if move_line.description == invoice.number:
+                        reconcile_lines.append(move_line)
+                        Invoice.write([invoice], {
+                            'payment_lines': [('add', [move_line.id])],
+                            })
+                if remainder == Decimal('0.00'):
+                    MoveLine.reconcile(reconcile_lines)
 
         reconcile_lines = []
         for line in self.lines_credits:
