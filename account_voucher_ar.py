@@ -461,11 +461,12 @@ class AccountVoucherLine(ModelSQL, ModelView):
     def get_reference(self, name):
         Invoice = Pool().get('account.invoice')
 
-        if self.move_line.move:
-            invoices = Invoice.search(
-                [('move', '=', self.move_line.move.id)])
-            if invoices:
-                return invoices[0].reference
+        if self.move_line:
+            if self.move_line.move:
+                invoices = Invoice.search(
+                    [('move', '=', self.move_line.move.id)])
+                if invoices:
+                    return invoices[0].reference
 
     def get_expire_date(self, name):
         res = self.move_line.maturity_date
